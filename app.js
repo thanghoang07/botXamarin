@@ -17,52 +17,43 @@ var connector = new builder.ChatConnector({
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 var bot = new builder.UniversalBot(connector);
+var intents = new builder.IntentDialog();
 server.post('/api/messages', connector.listen());
 
 //=========================================================
 // Bots Dialogs
 //=========================================================
 
-bot.dialog('/', function (session) {
-    session.send("Hello World");
-});
+bot.dialog('/', intents);
 
-server.post('/api/standup', function (req, res) {
-    // Get list of team members to run a standup with.
-    var members = req.body.members;
-    var reportId = req.body.reportId;
-    for (var i = 0; i < members.length; i++) {
-        // Start standup for the specified team member
-        var user = members[i];
-        var address = JSON.parse(user.address);
-        bot.beginDialog(address, '/standup', { userId: user.id, reportId: reportId });
-    }
-    res.status(200);
-    res.end();
-});
-
-bot.dialog('/standup', [
-    function (session, args) {
-        // Remember the ID of the user and status report
-        session.dialogData.userId = args.userId;
-        session.dialogData.reportId = args.reportId;
-
-        // Ask user their status
-        builder.Prompts.text(session, "What is your status for today?");
+intents.matches(/^change name/i, [
+    function (session) {
+        session.beginDialog('/profile');
     },
     function (session, results) {
-        var status = results.response;
-        var userId = session.dialogData.userId;
-        var reportId = session.dialogData.reportId;
+        session.send('Ok... Changed your name to %s', session.userData.name);
+    }
+]);
 
-        // Save their repsonse to the daily status report.
-        session.sendTyping();
-        saveTeamMemberStatus(userId, reportId, status, function (err) {
-            if (!err) {
-                session.endDialog('Got it... Thanks!');
-            } else {
-                session.error(err);
-            }
-        });
+intents.onDefault([
+    function (session, args, next) {
+        if (!session.userData.name) {
+            session.beginDialog('/profile');
+        } else {
+            next();
+        }
+    },
+    function (session, results) {
+        session.send('Hello %s!', session.userData.name);
+    }
+]);
+
+bot.dialog('/profile', [
+    function (session) {
+        builder.Prompts.text(session, 'Hi! What is your name?');
+    },
+    function (session, results) {
+        session.userData.name = results.response;
+        session.endDialog();
     }
 ]);
