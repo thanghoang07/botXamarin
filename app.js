@@ -39,7 +39,9 @@ intents.onDefault([
     function (session, args, next) {
         if (!session.userData.name) {
             session.beginDialog('/profile');
-        } else {
+        } else if (!session.userData.age){
+			session.beginDialog('/question');
+		}else {
             next();
         }
     },
@@ -63,7 +65,7 @@ bot.dialog('/question',[
 		builder.Prompts.text(session, 'Where are you??');
 	},
 	function (session, results){
-		session.send('I am fine');
+		session.userData.age = results.response;
 		session.endDialog();
 	}
 ])
