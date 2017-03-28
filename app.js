@@ -57,3 +57,13 @@ bot.dialog('/profile', [
         session.endDialog();
     }
 ]);
+
+bot.dialog('/question',[
+	function (session){
+		builder.Prompts.text(session, 'Where are you??');
+	},
+	function (session, results){
+		session.send('I am fine');
+		session.endDialog();
+	}
+])
